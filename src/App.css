@@ -1,0 +1,64 @@
+.App {
+  /*text-align: center;*/
+}
+
+.App-header {
+  /*height: 50px;*/
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.App-header .link {
+  display: inline-block;
+}
+
+.App-intro {
+}
+
+
+.collection {
+  /*color: red;*/
+}
+
+.collections > div, .items > div {
+  display: inline-block;
+  height: 250px;
+  width: 250px;
+  overflow: hidden;
+  border: 2px solid grey;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  vertical-align: top;
+}
+.collections > div > img, .items > div > img {
+  display: inline;
+}
+
+.sticky {
+  position: sticky;
+}
+.facets-xx {
+  position: sticky;
+  border-bottom: 1px solid #989EA4;
+  border-top: 1px solid #717D85;
+  color: #FFF;
+  margin: 0;
+  padding: 2px 0 0 12px;
+  position: -webkit-sticky;
+  position: sticky;
+  top: -1px;
+}
+
+.header-description {
+  max-height: 200px;
+  overflow-y:auto;
+}
+
+.logo {
+  width: 18px;
+  height:18px;
+  margin: 0;
+  padding: 0;
+  margin-right:15px;
+}
+
+.min-h5 { min-height: 16rem; }
