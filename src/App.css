@@ -3,9 +3,12 @@
 }
 
 .App-header {
-  /*height: 50px;*/
+  height: 60px;
   padding: 20px;
   margin-bottom: 20px;
+}
+.App-header > div {
+  display: none;
 }
 .App-header .link {
   display: inline-block;
@@ -24,7 +27,7 @@
   height: 250px;
   width: 250px;
   overflow: hidden;
-  border: 2px solid grey;
+  /*border: 2px solid grey;*/
   margin-right: 10px;
   margin-bottom: 10px;
   vertical-align: top;
@@ -38,8 +41,8 @@
 }
 .facets-xx {
   position: sticky;
-  border-bottom: 1px solid #989EA4;
-  border-top: 1px solid #717D85;
+  /*border-bottom: 1px solid #989EA4;*/
+  /*border-top: 1px solid #717D85;*/
   color: #FFF;
   margin: 0;
   padding: 2px 0 0 12px;

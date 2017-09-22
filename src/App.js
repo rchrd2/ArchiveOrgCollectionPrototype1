@@ -10,9 +10,10 @@ import jQuery from 'jquery';
 
 function buildSearchUrl(params) {
   params = Object.assign({
-    q: 'collection: inlibrary',
+    q: 'collection:inlibrary',
     output: 'jsonp',
     rows: 100,
+    'sort[]': 'downloads desc',
   }, params);
   var baseurl = 'https://archive.org/advancedsearch.php?callback=?&';
   return baseurl + jQuery.param(params);
@@ -31,6 +32,7 @@ class Collection extends Component {
       start: null,
       items: [],
       collections: [],
+      parentCollections: [],
       identifier: defaultId,
       metadata: {}
     };
@@ -45,9 +47,13 @@ class Collection extends Component {
     this.setState({
       identifier: nextProps.match.params.id,
       items: [],
-      collections: []
+      collections: [],
+      parentCollections: [],
+      metadata: {},
     });
     this.fetchData(nextProps.match.params.id);
+    window.scrollTo(0, 0);
+
   }
 
   fetchData(identifier) {
@@ -58,10 +64,29 @@ class Collection extends Component {
       this.setState({
         metadata: data.result
       });
+
+      // parent collections
+      if (typeof data.result.collection == 'string') {
+        data.result.collection = [data.result.collection];
+      } else if (!data.result.collection) {
+        data.result.collection = [];
+      }
+      if (data.result.collection.length) {
+        jQuery.getJSON(buildSearchUrl({
+          q: data.result.collection.map((v) => 'identifier:' + v).join(' OR '),
+          rows: 10,
+        })).then((data) => {
+          this.setState({
+            parentCollections: data.response.docs
+          });
+        });
+      }
+
     });
+    // items
     jQuery.getJSON(buildSearchUrl({
-      q: 'collection: ' + identifier + ' AND NOT mediatype:collection',
-      rows: 100,
+      q: 'collection:' + identifier + ' AND NOT mediatype:collection',
+      rows: 10,
     })).then((data) => {
       // console.log(data.response);
       this.setState({
@@ -70,8 +95,9 @@ class Collection extends Component {
         items: data.response.docs
       });
     });
+    // collections
     jQuery.getJSON(buildSearchUrl({
-      q: 'collection: ' + identifier + ' AND mediatype:collection',
+      q: 'collection:' + identifier + ' AND mediatype:collection',
       rows: 10
     })).then((data) => {
       // console.log(data.response);
@@ -79,6 +105,7 @@ class Collection extends Component {
         collections: data.response.docs
       });
     });
+
   }
 
   componentWillUnmount() {}
@@ -133,7 +160,7 @@ class Collection extends Component {
 
 
       return <article
-        className="br2 ba bw2 b--black-10  w-100 w-50-m w-25-l dib mw5-ns w-50-s mb4 mr3 v-top">
+        className="br2 ba b--black-10  w-100 w-50-m w-25-l dib mw5-ns w-50-s mb4 mr3 v-top">
 
         <div className="aspect-ratio aspect-ratio--1x1">
           {hrefEl}
@@ -150,6 +177,38 @@ class Collection extends Component {
 
 
   render() {
+    var md_desc = this.state.metadata.description || '';
+
+    var collectionsEl, itemsEl, parentCollectionsEl;
+    if (this.state.collections.length) {
+      collectionsEl = (<div>
+        <h2>Popular Collections <span className="fw4">(<a href="#">Browse All</a>)</span></h2>
+        <div className="collections">
+          {this.renderDocs(this.state.collections)}
+        </div>
+        <div className="mb5"><a href="#">Browse collections &gt;</a></div>
+      </div>);
+    }
+    if (this.state.items.length) {
+      itemsEl = (<div>
+        <h2>Popular Items <span className="fw4">(<a href="#">Browse All</a>)</span></h2>
+        <div className="items">
+          {this.renderDocs(this.state.items)}
+        </div>
+        <div className="mb5"><a href="#">Browse items &gt;</a></div>
+      </div>);
+    }
+
+    if (this.state.parentCollections.length) {
+      parentCollectionsEl = (<div>
+        <h2>Part of these collections <span className="fw4">(<a href="#">Browse All</a>)</span></h2>
+        <div className="collections">
+          {this.renderDocs(this.state.parentCollections)}
+        </div>
+        <div className="mb5"><a href="#">Browse collections &gt;</a></div>
+      </div>);
+    }
+
     return (
       <div className="App-results pa2-s">
 
@@ -160,7 +219,7 @@ class Collection extends Component {
           <div className="f2 mb4">{this.state.metadata.title}</div>
           <div className=" header-description">
 
-            <div className="mw8" dangerouslySetInnerHTML={{__html:this.state.metadata.description}}></div>
+            <div className="mw8" dangerouslySetInnerHTML={{__html:md_desc.substr(0, 400)}}></div>
 
           </div>
         </div>
@@ -171,23 +230,9 @@ class Collection extends Component {
           <FakeFacets/>
           <div className="flex-auto">
 
-
-            <h2>Collections</h2>
-            <div className="collections">
-              {this.renderDocs(this.state.collections)}
-            </div>
-            <div className="mb5"><a href="#">See all collections</a></div>
-
-            <h2>Items</h2>
-            <div className="items">
-              {this.renderDocs(this.state.items)}
-            </div>
-
-            <div className="mb5">
-              <a href="#">Prev page</a>&nbsp;&nbsp;
-              <a href="#">Next page</a>
-            </div>
-
+            {collectionsEl}
+            {itemsEl}
+            {parentCollectionsEl}
 
           </div>
         </div>
@@ -228,6 +273,13 @@ const FakeFacets = () => (
         <input type="submit" value="Search" />
       </form>
     </div>
+    <br/>
+    <br/>
+
+    Type<br/>
+    <br/>
+    <label><input type="checkbox" checked/> Collections</label><br/>
+    <label><input type="checkbox" checked/> Items</label><br/>
     <br/>
     <br/>
 
@@ -280,7 +332,12 @@ const Topics = ({ match }) => (
 const BasicExample = () => (
   <Router>
     <div className="App">
-      <div className="App-header bg-near-white ">
+      <header className="App-header bg-near-white">
+        <span className="placeholder-logo-block">
+          <img className="logo" src="/logo.svg" />
+          <span style={{position: 'relative', top:'-3px'}}>Internet Archive</span>
+        </span>
+
         <div>
           <div className="link pr3">
             <img className="logo" src="/logo.svg" />
@@ -311,7 +368,7 @@ const BasicExample = () => (
           </div>
         </div>
 
-      </div>
+      </header>
 
       <Route exact path="/" component={Home}/>
       <Route path="/about" component={About}/>
@@ -367,17 +424,13 @@ const BasicExample = () => (
          </div>
          <div className="fl w-100 w-50-m w-25-l pa3-m pa4-l">
            <p className="f6 lh-copy measure">
-            <b>Internet Archive</b><br/>
-            About<br/>
-            Contact<br/>
-            Blog<br/>
-            Projects<br/>
-            Help<br/>
-            Donate<br/>
-            Terms<br/>
-            Jobs<br/>
-            Volunteer<br/>
-            People<br/>
+            <b>Prototype Links</b><br/>
+            <div className="link pr2"><Link to="/details/web">Web</Link></div>
+            <div className="link pr2"><Link to="/details/texts">Texts</Link></div>
+            <div className="link pr2"><Link to="/details/movies">Movies</Link></div>
+            <div className="link pr2"><Link to="/details/audio">Audio</Link></div>
+            <div className="link pr2"><Link to="/details/software">Software</Link></div>
+            <div className="link pr2"><Link to="/details/images">Images</Link></div>
            </p>
          </div>
        </section>
